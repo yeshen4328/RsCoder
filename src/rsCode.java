@@ -6,12 +6,12 @@ import java.io.IOException;
 
 public class rsCode
 {  
-    private static final int MM = 8;  
-    private static final int NN = 255;  
-    private static final int KK = 127;  
+    private static final int MM = 4;  
+    private static final int NN = 15;  
+    private static final int KK = 9;  
     private static final int TT = (NN - KK) / 2; 
     
-    private int[] pp = {1,0,1,1,1,0,0,0,1}  ;//  N255K127{1,0,1,1,1,0,0,0,1}    N15K11M4{1,1,0,0,1}
+    private int[] pp = {1,1,0,0,1}  ;//  N255K127{1,0,1,1,1,0,0,0,1}    N15K11M4{1,1,0,0,1}
     //private int[] pp = {1,1,0,0,1};
     private int[] alphaTo = new int[NN+1];  
     private int[] indexOf = new int[NN+1];  
@@ -457,7 +457,7 @@ public class rsCode
 			byte[] data = null;
 			int[] dataNew = null;
 			try {
-					fis = new FileInputStream("./introduction.txt");
+					fis = new FileInputStream("./ip.txt");
 					int size = fis.available();
 					//size = 6400/MM/NN*KK*MM;
 					data = new byte[size];
@@ -492,7 +492,7 @@ public class rsCode
 				else
 					writeToFile[i] = 0;
 			try {
-					FileWriter fw = new FileWriter("./msg_introRs15_11.txt");
+					FileWriter fw = new FileWriter("./msg_ip255_65.txt");
 					for(int i = 0;i < writeToFile.length; i++)
 					{
 						byte[] b = byteArr2DoubleRadix(writeToFile[i]);
@@ -508,10 +508,10 @@ public class rsCode
 		}
 	   }	
  //************解码**************************************
-	if(false)
+	if(true)
 	{
 		rsCode rs2 = new rsCode();  
-		int[] code2 = Io.readBitAndStranToByte("./result.txt");
+		int[] code2 = Io.readBitAndStranToByte("./msg_surface255_65.txt");
 		int[] rawMsg = new int[3 * KK];
 		/*for(int i = 0; i < 64; i++)
 			if(i*3 >= code2.length)
