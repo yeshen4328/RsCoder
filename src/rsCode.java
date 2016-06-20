@@ -12,7 +12,6 @@ public class rsCode
     private static final int NN = 15;  
     private static final int KK = 9;  
     private static final int TT = (NN - KK) / 2; 
-    private static final int BB = 5; 
     private int[] pp = {1,1,0,0,1}  ;//  N255K127{1,0,1,1,1,0,0,0,1}    N15K11M4{1,1,0,0,1}
     //private int[] pp = {1,1,0,0,1};
     private int[] alphaTo = new int[NN+1];  
@@ -458,7 +457,7 @@ public class rsCode
 	        FileInputStream fis = null;
 			byte[] data = null;
 			int[] dataNew = null;
-			int realDataSize = 6400/MM/(NN + 1)/BB * (BB - 1) * KK;
+			
 			try {
 					fis = new FileInputStream("./ip.txt");
 					int size = fis.available();
@@ -466,8 +465,8 @@ public class rsCode
 					data = new byte[size];
 					fis.read(data);
 					fis.close(); 
-					dataNew = new int[realDataSize];
-					for(int i = 0, j = 0; j < realDataSize; i++, j+=2)
+					dataNew = new int[size];
+					for(int i = 0, j = 0; i < size; i++, j+=2)
 					{
 						dataNew[j] = (int)(data[i] & 0x0f);
 						dataNew[j + 1] = (int)(data[i] >> 4 & 0x0f);
@@ -483,26 +482,13 @@ public class rsCode
 			int[][] dataToEncode = new int[blockNum][KK];
 			int[] code = new int[(NN + 1) * blockNum];
 			for(int i = 0; i < blockNum; i++)
-			{
-				if((i+1)/BB == 0)// 加入二重编码
-				{
-					int[] xorBlock = new int[NN + 1];
-					for(int j = 0; j < NN + 1; j++)//
-						xorBlock[j] = code[(i - 1) * (NN + 1) + j] ^ code[(i - 2) * (NN + 1) + j] ^ code[(i - 3) * (NN + 1) + j] ^ code[(i - 4) * (NN + 1) + j];//异或前BB个bunch
-					System.arraycopy(xorBlock, 0, code, i * (NN + 1), NN + 1);
-					continue;
-				}
+			{			
 				System.arraycopy(dataNew, i * KK, dataToEncode[i], 0, KK);
 				rs.putData(dataToEncode[i]);
 				rs.rsEncode();
 				int[] result = rs.getCode();
 				
-				System.arraycopy(result, 0, code, i * (NN + 1), NN - KK);
-				System.arraycopy(dataToEncode[i], 0, code, i * (NN + 1) + NN - KK, KK);
-				int xor = 0;
-				for(int j = 0; j < KK; j++)//加入信息码的异或
-					xor ^= dataToEncode[i][j];
-				code[i * (NN + 1) + NN] = xor;
+				System.arraycopy(result, 0, code, i * NN, NN - KK);
 			}
 			
 			int[] writeToFile = new int[6400/MM];
