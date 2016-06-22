@@ -5,7 +5,7 @@ import java.io.IOException;
 
 
 public class Io {
-
+	public static final int MM = 4;  
 	public Io() {
 		// TODO Auto-generated constructor stub
 	}
@@ -24,12 +24,12 @@ public class Io {
 				dataInBit = new byte[bit.length];
 				for(int i = 0; i < bit.length; i++)
 					dataInBit[i] = (byte) (bit[i].equals("1") ? 1: 0);
-				realData = new int[bit.length / 8];
-				byte[] temp = new byte[8];
+				realData = new int[bit.length / MM];
+				byte[] temp = new byte[MM];
 				
 				for(int i = 0; i < realData.length; i++)
 				{
-					System.arraycopy(dataInBit, i * 8, temp, 0, 8);
+					System.arraycopy(dataInBit, i * MM, temp, 0, MM);
 					realData[i] = DoubleRadix2Byte(temp);
 				}
 				fr.close();
@@ -46,8 +46,8 @@ public class Io {
 	public static int DoubleRadix2Byte(byte[] d)
 	{
 		int out = 0;
-		for(int i = 0; i < 8; i++)		
-			out += d[i] * Math.pow(2, 7 - i);	
+		for(int i = 0; i < MM; i++)		
+			out += d[i] * Math.pow(2, MM - 1 - i);	
 		return out;
 	}
 }

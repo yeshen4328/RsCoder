@@ -10,7 +10,7 @@ public class rsCode
 {  
     private static final int MM = 4;  
     private static final int NN = 15;  
-    private static final int KK = 9;  
+    private static final int KK = 1;  
     private static final int TT = (NN - KK) / 2; 
     private int[] pp = {1,1,0,0,1}  ;//  N255K127{1,0,1,1,1,0,0,0,1}    N15K11M4{1,1,0,0,1}
     //private int[] pp = {1,1,0,0,1};
@@ -459,17 +459,17 @@ public class rsCode
 			int[] dataNew = null;
 			
 			try {
-					fis = new FileInputStream("./ip.txt");
+					fis = new FileInputStream("./surface.txt");
 					int size = fis.available();
-					//size = 6400/MM/NN*KK*MM;
+					size = 6400/MM/NN * KK * MM / 8;
 					data = new byte[size];
 					fis.read(data);
 					fis.close(); 
-					dataNew = new int[size];
+					dataNew = new int[2 * size];
 					for(int i = 0, j = 0; i < size; i++, j+=2)
 					{
-						dataNew[j] = (int)(data[i] & 0x0f);
-						dataNew[j + 1] = (int)(data[i] >> 4 & 0x0f);
+						dataNew[j] = (int)(data[i] >> 4 & 0x0f);
+						dataNew[j + 1] = (int)(data[i]  & 0x0f);
 					}
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
@@ -478,27 +478,30 @@ public class rsCode
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			int blockNum = 6400/MM/(NN + 1);
+			int blockNum = 6400/MM/(NN);
 			int[][] dataToEncode = new int[blockNum][KK];
-			int[] code = new int[(NN + 1) * blockNum];
+			int[] code = new int[(NN) * blockNum];
 			for(int i = 0; i < blockNum; i++)
 			{			
 				System.arraycopy(dataNew, i * KK, dataToEncode[i], 0, KK);
 				rs.putData(dataToEncode[i]);
 				rs.rsEncode();
 				int[] result = rs.getCode();
-				
-				System.arraycopy(result, 0, code, i * NN, NN - KK);
+
+				System.arraycopy(result, 0, code, i * NN, NN - KK);//校验码
+				System.arraycopy(dataToEncode[i], 0, code, i * NN + NN - KK, KK);//信息码
 			}
 			
 			int[] writeToFile = new int[6400/MM];
+//************************************************分配**************************************************
 			for(int i = 0; i < 6400/MM; i++)
 				if(i < code.length)
 					writeToFile[i] = code[i];
 				else
 					writeToFile[i] = 0;
+			
 			try {
-					FileWriter fw = new FileWriter("./msg_ip255_65.txt");
+					FileWriter fw = new FileWriter("./msg_surface15_1.txt");
 					for(int i = 0;i < writeToFile.length; i++)
 					{
 						byte[] b = byteArr2DoubleRadix(writeToFile[i]);
@@ -517,27 +520,28 @@ public class rsCode
 	if(true)
 	{
 		rsCode rs2 = new rsCode();  
-		int[] code2 = Io.readBitAndStranToByte("./msg_surface255_65.txt");
-		int[] rawMsg = new int[3 * KK];
+		int[] code2 = Io.readBitAndStranToByte("./msg_surface15_1.txt");
+		int blockNum = 6400 / MM / NN;
+		int[] rawMsg = new int[blockNum * KK];
 		/*for(int i = 0; i < 64; i++)
 			if(i*3 >= code2.length)
 				break;
 			else
 				code2[i*3] = '?';*/
-        for(int i = 0; i < 3; i++)
+        for(int i = 0; i < blockNum; i++)
         {
         	int[] tmpC = new int[NN];
-        	System.arraycopy(code2, i * 255, tmpC, 0, 255);
+        	System.arraycopy(code2, i * NN, tmpC, 0, NN);      	
         	rs2.putToDecode(tmpC);
         	rs2.rsDecode();
         	int[] receive = rs2.getCaledReceive();
         	System.arraycopy(receive, NN - KK, rawMsg, i * KK, KK);
         }
-        
+        int[] msgInByte = combination(rawMsg); 
         try {
-        		byte[] msg = new byte[rawMsg.length];
+        		byte[] msg = new byte[msgInByte.length];
         		for(int i = 0; i < msg.length; i++)
-        			msg[i] = (byte)rawMsg[i];
+        			msg[i] = (byte)msgInByte[i];
 				FileOutputStream fos = new FileOutputStream("./cali.txt");
 				fos.write(msg);
 				fos.flush();
@@ -573,6 +577,16 @@ public class rsCode
             System.out.println(i + "   " + rs.data[i-NN+KK] + "   " + rs.recd[i]);  
         } */ 
     }  
+    public static int[] combination(int[] merge)
+    {
+    	int[] out = new int[merge.length / 2];
+    	for(int i = 0, j = 0; i < merge.length; i += 2, j++)
+		{
+    		out[j] = (byte) (merge[i] & 0xf) << 4;
+    		out[j] ^= (merge[i + 1] & 0xf) ;
+		}
+    	return out;
+    }
 	static byte[] byteArr2DoubleRadix(int b)
 	{
 		byte[] s = new byte[MM];
