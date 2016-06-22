@@ -478,9 +478,10 @@ public class rsCode
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			int blockNum = 6400/MM/(NN);
+			int blockNum = 6400/MM/(NN + 1);
 			int[][] dataToEncode = new int[blockNum][KK];
-			int[] code = new int[(NN) * blockNum];
+			//int[] code = new int[(NN) * blockNum];
+			int[] code = new int[6400 / MM];
 			for(int i = 0; i < blockNum; i++)
 			{			
 				System.arraycopy(dataNew, i * KK, dataToEncode[i], 0, KK);
@@ -488,26 +489,26 @@ public class rsCode
 				rs.rsEncode();
 				int[] result = rs.getCode();
 
-				System.arraycopy(result, 0, code, i * NN, NN - KK);//校验码
-				System.arraycopy(dataToEncode[i], 0, code, i * NN + NN - KK, KK);//信息码
+				System.arraycopy(result, 0, code, i * (NN + 1), NN - KK);//校验码
+				System.arraycopy(dataToEncode[i], 0, code, i * (NN + 1) + NN - KK, KK);//信息码
+			//	System.arraycopy(dataToEncode[i], 0, code, i * (NN + 1) + NN, KK);//异或
 			}
 			
-			int[] writeToFile = new int[6400/MM];
+/*			int[] writeToFile = new int[6400/MM];
 //************************************************分配**************************************************V2.1
-			for(int i = 0; i < 6400/MM; i++)
-				if(i < code.length)
-					writeToFile[i] = code[i];
-				else
-					writeToFile[i] = 0;
-			
+			for(int i = 0; i < 6400/MM/(NN + 1); i++)
+			{
+				 System.arraycopy(code, i * NN, writeToFile, i * (NN + 1), NN);
+				 writeToFile[i * NN] = code[i * NN - 1];
+			}*/
+			 
 			try {
-					FileWriter fw = new FileWriter("./msg_surface15_1.txt");
-					for(int i = 0;i < writeToFile.length; i++)
+					FileWriter fw = new FileWriter("./msg_surface15_1_.txt");
+					for(int i = 0;i < code.length; i++)
 					{
-						byte[] b = byteArr2DoubleRadix(writeToFile[i]);
+						byte[] b = byteArr2DoubleRadix(code[i]);
 						for(int j = 0; j < MM; j++)	
 							fw.write(Byte.toString(b[j]) + " ");
-						
 					}
 					fw.flush();
 					fw.close();
@@ -520,8 +521,8 @@ public class rsCode
 	if(true)
 	{
 		rsCode rs2 = new rsCode();  
-		int[] code2 = Io.readBitAndStranToByte("./msg_surface15_1.txt");
-		int blockNum = 6400 / MM / NN;
+		int[] code2 = Io.readBitAndStranToByte("./msg_surface15_1_.txt");
+		int blockNum = 6400 / MM / (NN + 1);
 		int[] rawMsg = new int[blockNum * KK];
 		/*for(int i = 0; i < 64; i++)
 			if(i*3 >= code2.length)
@@ -531,13 +532,13 @@ public class rsCode
         for(int i = 0; i < blockNum; i++)
         {
         	int[] tmpC = new int[NN];
-        	System.arraycopy(code2, i * NN, tmpC, 0, NN);      	
+        	System.arraycopy(code2, i * (NN + 1), tmpC, 0, NN);
         	rs2.putToDecode(tmpC);
         	rs2.rsDecode();
         	int[] receive = rs2.getCaledReceive();
         	System.arraycopy(receive, NN - KK, rawMsg, i * KK, KK);
         }
-        int[] msgInByte = combination(rawMsg); 
+        int[] msgInByte = combination(rawMsg);
         try {
         		byte[] msg = new byte[msgInByte.length];
         		for(int i = 0; i < msg.length; i++)
