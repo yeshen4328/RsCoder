@@ -450,7 +450,7 @@ public class rsCode
     public static void main(String[] args)
     {  
         // TODO Auto-generated method stub  
-	    if(true)
+	    if(false)
 	    {
 	        rsCode rs = new rsCode();        
 	        //************输入要编码的数据 **************编码*****************
@@ -520,8 +520,8 @@ public class rsCode
  //************解码**************************************
 	if(true)
 	{
-		rsCode rs2 = new rsCode();  
-		int[] code2 = Io.readBitAndStranToByte("./msg_surface15_1_.txt");
+		rsCode rs2 = new rsCode();
+		int[] code2 = Io.readBitAndStranToByte("./result.txt");
 		int blockNum = 6400 / MM / (NN + 1);
 		int[] rawMsg = new int[blockNum * KK];
 		/*for(int i = 0; i < 64; i++)
@@ -543,8 +543,10 @@ public class rsCode
         		byte[] msg = new byte[msgInByte.length];
         		for(int i = 0; i < msg.length; i++)
         			msg[i] = (byte)msgInByte[i];
-				FileOutputStream fos = new FileOutputStream("./cali.txt");
+				FileOutputStream fos = new FileOutputStream("./result_43.txt");
 				fos.write(msg);
+				String msginstr = msg.toString();
+				System.out.println(msginstr);
 				fos.flush();
 				fos.close();
 		} catch (FileNotFoundException e) {
