@@ -450,18 +450,19 @@ public class rsCode
     public static void main(String[] args)
     {  
         // TODO Auto-generated method stub  
-	    if(false)
+	    if(true)
 	    {
 	        rsCode rs = new rsCode();        
 	        //************输入要编码的数据 **************编码*****************
+	        //二重纠错，每16个码字一组，其中包括15码字用来做rs编码，还有一个码字用来判断信息码是否正确。
 	        FileInputStream fis = null;
 			byte[] data = null;
 			int[] dataNew = null;
-			
+			int setNum = 6400 / (NN + 1) / MM / 5;
 			try {
 					fis = new FileInputStream("./surface.txt");
 					int size = fis.available();
-					size = 6400/MM/NN * KK * MM / 8;
+					size = setNum * (5 - 1) * KK * MM / 8;
 					data = new byte[size];
 					fis.read(data);
 					fis.close(); 
@@ -478,20 +479,36 @@ public class rsCode
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			int blockNum = 6400/MM/(NN + 1);
+			int validBlockNum = 6400/MM/(NN + 1) * 4/5;
+			int blockNum = 6400 / MM / (NN + 1);
 			int[][] dataToEncode = new int[blockNum][KK];
 			//int[] code = new int[(NN) * blockNum];
 			int[] code = new int[6400 / MM];
-			for(int i = 0; i < blockNum; i++)
-			{			
-				System.arraycopy(dataNew, i * KK, dataToEncode[i], 0, KK);
+			for(int i = 0, p = 0; i < blockNum; i++)
+			{
+				if((i+1)%5 == 0)
+				{
+					int xorArr = 0;
+					for(int j = 0; j < 4; j++)
+						xorArr ^= dataToEncode[i - j - 1][0];
+					int[] tmp = new int[1];
+					tmp[0] = xorArr;
+					rs.putData(tmp);
+					rs.rsEncode();
+					int[] res = rs.getCode();
+					System.arraycopy(res, 0, code, i * (NN + 1), NN - KK);
+					System.arraycopy(new int[]{xorArr}, 0, code, i*(NN + 1) + NN - KK, KK);
+					System.arraycopy(new int[]{xorArr}, 0, code, i * (NN + 1) + NN, KK);
+					continue;
+				}
+				System.arraycopy(dataNew, p++ * KK, dataToEncode[i], 0, KK);
 				rs.putData(dataToEncode[i]);
 				rs.rsEncode();
 				int[] result = rs.getCode();
-
 				System.arraycopy(result, 0, code, i * (NN + 1), NN - KK);//校验码
 				System.arraycopy(dataToEncode[i], 0, code, i * (NN + 1) + NN - KK, KK);//信息码
-			//	System.arraycopy(dataToEncode[i], 0, code, i * (NN + 1) + NN, KK);//异或
+				int xor = getXor(dataToEncode[i]);
+				System.arraycopy(new int[]{xor}, 0, code, i * (NN + 1) + NN, KK);//异或
 			}
 			
 /*			int[] writeToFile = new int[6400/MM];
@@ -503,7 +520,7 @@ public class rsCode
 			}*/
 			 
 			try {
-					FileWriter fw = new FileWriter("./msg_surface15_1_.txt");
+					FileWriter fw = new FileWriter("./msg_surface_double_15_1_.txt");
 					for(int i = 0;i < code.length; i++)
 					{
 						byte[] b = byteArr2DoubleRadix(code[i]);
@@ -517,26 +534,69 @@ public class rsCode
 			e.printStackTrace();
 		}
 	   }	
- //************解码**************************************
+//************解码**************************************
+/*二重纠错：
+ * 每16个码字为一个block，每5个block为一个set；
+ * 每个block中包含有15码字的码组信息+1码字检验码，该校验码为码组中信息码的异或，接受到后可用信息码异或和该码字对比，相等则解码正确，否者失败；
+ * 5个block中最后一个block用来二重纠错，用前面所有的信息码异或的来，5个block中有4个正确，一个错误，则可以用异或求出错误的那个block。
+ * */
 	if(true)
 	{
 		rsCode rs2 = new rsCode();
-		int[] code2 = Io.readBitAndStranToByte("./result.txt");
+		int[] code2 = Io.readBitAndStranToByte("./msg_surface_double_15_1_.txt");
+		//计算共有多少block
+		int ValidBlockNum = 6400 / MM / (NN + 1) * 4/5;
 		int blockNum = 6400 / MM / (NN + 1);
-		int[] rawMsg = new int[blockNum * KK];
+		//解码的出的信息码放rawMsg中
+		int[] rawMsg = new int[ValidBlockNum * KK];
 		/*for(int i = 0; i < 64; i++)
 			if(i*3 >= code2.length)
 				break;
 			else
 				code2[i*3] = '?';*/
-        for(int i = 0; i < blockNum; i++)
+		int errorNum = 0, errorPos = 0, setNum = 0;
+
+        for(int i = 0, p = 0; i < blockNum; i ++)
         {
         	int[] tmpC = new int[NN];
+        	int xor1 = 0;
+        	setNum = (i + 1) / 6;//当前block所处的set号
+        	if((i+1)%5 == 0)//处理第5个block
+        	{
+        		System.arraycopy(code2, i * (NN + 1), tmpC, 0, NN);
+            	xor1 = code2[i * (NN + 1) + NN];
+            	rs2.putToDecode(tmpC);
+            	rs2.rsDecode();
+            	int[] receive = rs2.getCaledReceive();
+            	if(receive[NN - KK] != xor1)
+            	{
+            		errorNum++;
+            		errorPos = (i)%5;
+            	}
+            	if(errorNum == 1 && errorPos != 4)
+            	{
+            		int tmpXor = 0;
+            		for(int j = 0; j < 5; j++)//利用第5个block，异或来纠错那错误的一个block
+            			if(j != errorPos)
+            				tmpXor ^= rawMsg[setNum * 5 + j];
+            		rawMsg[setNum * 5 + errorPos] = tmpXor;	
+            	}
+            	errorNum = 0;
+            	errorPos = 0;
+            	continue;
+        	}     	
         	System.arraycopy(code2, i * (NN + 1), tmpC, 0, NN);
+        	xor1 = code2[i*(NN + 1) + NN];
+        	
         	rs2.putToDecode(tmpC);
         	rs2.rsDecode();
         	int[] receive = rs2.getCaledReceive();
-        	System.arraycopy(receive, NN - KK, rawMsg, i * KK, KK);
+        	if(receive[NN - KK] != xor1)
+        	{
+        		errorNum++;
+        		errorPos = (i+1)%5;
+        	}  	
+        	System.arraycopy(receive, NN - KK, rawMsg, p++ * KK, KK);
         }
         int[] msgInByte = combination(rawMsg);
         try {
@@ -580,7 +640,29 @@ public class rsCode
             System.out.println(i + "   " + rs.data[i-NN+KK] + "   " + rs.recd[i]);  
         } */ 
     }  
-    public static int[] combination(int[] merge)
+    private static byte[] combination(byte[] msg1, byte[] msg2)
+	{
+		byte[] msg = new byte[(msg1.length + msg2.length)/2];
+		byte[] merge = new byte[msg1.length + msg2.length];
+		System.arraycopy(msg1, 0, merge, 0, msg1.length);
+		System.arraycopy(msg2, 0, merge, msg1.length, msg2.length);
+		
+		for(int i = 0, j = 0; i < merge.length; i += 2, j++)
+		{
+			msg[j] = (byte) ((merge[i] & 0xf) << 4);
+			msg[j] ^= (merge[i + 1] & 0xf) ;
+		}
+		return msg;
+	}
+    private static int getXor(int[] is) {
+		// TODO Auto-generated method stub
+    	int xor = 0;
+    	for(int i = 0; i < is.length; i++)
+    		xor ^= is[i];
+		return xor;
+	}
+
+	public static int[] combination(int[] merge)
     {
     	int[] out = new int[merge.length / 2];
     	for(int i = 0, j = 0; i < merge.length; i += 2, j++)
