@@ -8,6 +8,7 @@ import javax.security.sasl.RealmCallback;
 
 public class rsCode
 {  
+	private static final int BITS_ALL = 6000;
     private static final int MM = 4;  
     private static final int NN = 15;  
     private static final int KK = 1;  
@@ -15,8 +16,8 @@ public class rsCode
     private int[] pp = {1,1,0,0,1}  ;//  N255K127{1,0,1,1,1,0,0,0,1}    N15K11M4{1,1,0,0,1}
     //private int[] pp = {1,1,0,0,1};
     private int[] alphaTo = new int[NN+1];  
-    private int[] indexOf = new int[NN+1];  
-    private int[] gg = new int[NN-KK+1];  
+    private int[] indexOf = new int[NN+1];
+    private int[] gg = new int[NN-KK+1];
     public int[] recd = new int[NN];  
     public int[] data = new int[KK];  //信息码位
     public int[] bb = new int[NN-KK];  //保存最后的校验位
@@ -458,7 +459,7 @@ public class rsCode
 	        FileInputStream fis = null;
 			byte[] data = null;
 			int[] dataNew = null;
-			int setNum = 6400 / (NN + 1) / MM / 5;
+			int setNum = BITS_ALL / (NN + 1) / MM / 5;
 			try {
 					fis = new FileInputStream("./surface.txt");
 					int size = fis.available();
@@ -479,11 +480,11 @@ public class rsCode
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			int validBlockNum = 6400/MM/(NN + 1) * 4/5;
-			int blockNum = 6400 / MM / (NN + 1);
+
+			int blockNum = setNum * 5;
 			int[][] dataToEncode = new int[blockNum][KK];
 			//int[] code = new int[(NN) * blockNum];
-			int[] code = new int[6400 / MM];
+			int[] code = new int[BITS_ALL / MM];
 			for(int i = 0, p = 0; i < blockNum; i++)
 			{
 				if((i+1)%5 == 0)
@@ -520,7 +521,7 @@ public class rsCode
 			}*/
 			 
 			try {
-					FileWriter fw = new FileWriter("./msg_surface_double_15_1_.txt");
+					FileWriter fw = new FileWriter("./msg_surface_double_15_1_6k.txt");
 					for(int i = 0;i < code.length; i++)
 					{
 						byte[] b = byteArr2DoubleRadix(code[i]);
@@ -543,10 +544,12 @@ public class rsCode
 	if(true)
 	{
 		rsCode rs2 = new rsCode();
-		int[] code2 = Io.readBitAndStranToByte("./msg_surface_double_15_1_.txt");
+		int[] code2 = Io.readBitAndStranToByte("./result.txt");
+		int setNumInAll = BITS_ALL / (NN + 1) / MM / 5;
 		//计算共有多少block
-		int ValidBlockNum = 6400 / MM / (NN + 1) * 4/5;
-		int blockNum = 6400 / MM / (NN + 1);
+		int ValidBlockNum = setNumInAll * 4;
+		
+		int blockNum = setNumInAll * 5;
 		//解码的出的信息码放rawMsg中
 		int[] rawMsg = new int[ValidBlockNum * KK];
 		/*for(int i = 0; i < 64; i++)
