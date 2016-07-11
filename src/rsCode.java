@@ -4,14 +4,12 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import javax.security.sasl.RealmCallback;
-
 public class rsCode
 {  
 	private static final int BITS_ALL = 6000;
     private static final int MM = 4;  
     private static final int NN = 15;  
-    private static final int KK = 1;  
+    private static final int KK = 3;  
     private static final int TT = (NN - KK) / 2; 
     private int[] pp = {1,1,0,0,1}  ;//  N255K127{1,0,1,1,1,0,0,0,1}    N15K11M4{1,1,0,0,1}
     //private int[] pp = {1,1,0,0,1};
@@ -459,11 +457,11 @@ public class rsCode
 	        FileInputStream fis = null;
 			byte[] data = null;
 			int[] dataNew = null;
-			int setNum = BITS_ALL / (NN + 1) / MM / 5;
+			int setNumInAll = BITS_ALL / (NN) / MM / 5;
 			try {
 					fis = new FileInputStream("./surface.txt");
 					int size = fis.available();
-					size = setNum * (5 - 1) * KK * MM / 8;
+					size = setNumInAll * (5 - 1) * KK * MM / 8;
 					data = new byte[size];
 					fis.read(data);
 					fis.close(); 
@@ -481,35 +479,46 @@ public class rsCode
 				e.printStackTrace();
 			}
 
-			int blockNum = setNum * 5;
-			int[][] dataToEncode = new int[blockNum][KK];
+			int blockNum = setNumInAll * 5;
 			//int[] code = new int[(NN) * blockNum];
 			int[] code = new int[BITS_ALL / MM];
-			for(int i = 0, p = 0; i < blockNum; i++)
+			int[] set = new int[5 * NN];
+			int[] oneSetMsg = new int[4 * (KK - 1)];
+			int[][] msg = new int[5][KK];
+			int[] block = new int[NN];
+			for(int i = 0; i < setNumInAll; i++)
 			{
-				if((i+1)%5 == 0)
+				System.arraycopy(dataNew, i * 4 * (KK - 1), oneSetMsg, 0, 4 * (KK - 1));
+				for(int j = 0; j < 4; j++)
 				{
-					int xorArr = 0;
-					for(int j = 0; j < 4; j++)
-						xorArr ^= dataToEncode[i - j - 1][0];
-					int[] tmp = new int[1];
-					tmp[0] = xorArr;
-					rs.putData(tmp);
+					System.arraycopy(oneSetMsg, j * (KK - 1), msg[j], 0, KK - 1);
+					for(int k = 0; k < KK - 1; k++)
+						msg[j][KK - 1] ^= msg[j][k];
+					rs.putData(msg[j]);
 					rs.rsEncode();
-					int[] res = rs.getCode();
-					System.arraycopy(res, 0, code, i * (NN + 1), NN - KK);
-					System.arraycopy(new int[]{xorArr}, 0, code, i*(NN + 1) + NN - KK, KK);
-					System.arraycopy(new int[]{xorArr}, 0, code, i * (NN + 1) + NN, KK);
-					continue;
+					int[] encoded = rs.getCode();//校验码
+					/*
+					 * 将校验码和信息码放入到block中
+					 */
+					System.arraycopy(encoded, 0, block, 0, NN - KK);
+					System.arraycopy(msg[j], 0, block, NN - KK, KK);
+					/*
+					 * 将block放入到set中
+					 */
+					System.arraycopy(block, 0, set, j * NN, NN);
 				}
-				System.arraycopy(dataNew, p++ * KK, dataToEncode[i], 0, KK);
-				rs.putData(dataToEncode[i]);
+				for(int k = 0; k < KK - 1; k++)
+					for(int j = 0; j < 4; j++)
+						msg[4][k] ^= msg[j][k];
+				rs.putData(msg[4]);
 				rs.rsEncode();
-				int[] result = rs.getCode();
-				System.arraycopy(result, 0, code, i * (NN + 1), NN - KK);//校验码
-				System.arraycopy(dataToEncode[i], 0, code, i * (NN + 1) + NN - KK, KK);//信息码
-				int xor = getXor(dataToEncode[i]);
-				System.arraycopy(new int[]{xor}, 0, code, i * (NN + 1) + NN, KK);//异或
+				int[] encoded = rs.getCode();
+				System.arraycopy(encoded, 0, block, 0, NN - KK);
+				System.arraycopy(msg[4], 0, block, NN - KK, KK);
+				System.arraycopy(block, 0, set, 4 * NN, NN);
+				
+				
+				System.arraycopy(set, 0, code, i * 5 * NN, 5 * NN);
 			}
 			
 /*			int[] writeToFile = new int[6400/MM];
@@ -521,7 +530,7 @@ public class rsCode
 			}*/
 			 
 			try {
-					FileWriter fw = new FileWriter("./msg_surface_double_15_1_6k.txt");
+					FileWriter fw = new FileWriter("./msg_surface_double_15_3_6k.txt");
 					for(int i = 0;i < code.length; i++)
 					{
 						byte[] b = byteArr2DoubleRadix(code[i]);
@@ -544,63 +553,57 @@ public class rsCode
 	if(true)
 	{
 		rsCode rs2 = new rsCode();
-		int[] code2 = Io.readBitAndStranToByte("./result.txt");
-		int setNumInAll = BITS_ALL / (NN + 1) / MM / 5;
+		int[] code2 = Io.readBitAndStranToByte("./msg_surface_double_15_3_6k.txt");
+		int setNumInAll = BITS_ALL / (NN) / MM / 5;
 		//计算共有多少block
 		int ValidBlockNum = setNumInAll * 4;
-		
 		int blockNum = setNumInAll * 5;
+		int errorNum = 0, errorPos = 0;
 		//解码的出的信息码放rawMsg中
-		int[] rawMsg = new int[ValidBlockNum * KK];
-		/*for(int i = 0; i < 64; i++)
-			if(i*3 >= code2.length)
-				break;
-			else
-				code2[i*3] = '?';*/
-		int errorNum = 0, errorPos = 0, setNum = 0;
-
-        for(int i = 0, p = 0; i < blockNum; i ++)
-        {
-        	int[] tmpC = new int[NN];
-        	int xor1 = 0;
-        	setNum = (i + 1) / 6;//当前block所处的set号
-        	if((i+1)%5 == 0)//处理第5个block
-        	{
-        		System.arraycopy(code2, i * (NN + 1), tmpC, 0, NN);
-            	xor1 = code2[i * (NN + 1) + NN];
-            	rs2.putToDecode(tmpC);
-            	rs2.rsDecode();
-            	int[] receive = rs2.getCaledReceive();
-            	if(receive[NN - KK] != xor1)
-            	{
-            		errorNum++;
-            		errorPos = (i)%5;
-            	}
-            	if(errorNum == 1 && errorPos != 4)
-            	{
-            		int tmpXor = 0;
-            		for(int j = 0; j < 5; j++)//利用第5个block，异或来纠错那错误的一个block
-            			if(j != errorPos)
-            				tmpXor ^= rawMsg[setNum * 5 + j];
-            		rawMsg[setNum * 5 + errorPos] = tmpXor;	
-            	}
-            	errorNum = 0;
-            	errorPos = 0;
-            	continue;
-        	}     	
-        	System.arraycopy(code2, i * (NN + 1), tmpC, 0, NN);
-        	xor1 = code2[i*(NN + 1) + NN];
-        	
-        	rs2.putToDecode(tmpC);
-        	rs2.rsDecode();
-        	int[] receive = rs2.getCaledReceive();
-        	if(receive[NN - KK] != xor1)
-        	{
-        		errorNum++;
-        		errorPos = (i+1)%5;
-        	}  	
-        	System.arraycopy(receive, NN - KK, rawMsg, p++ * KK, KK);
-        }
+		int[] rawMsg = new int[ValidBlockNum * (KK - 1)];
+		for(int i = 0; i < setNumInAll; i++)
+		{
+			/*
+			 * 一次读一个set，一个set包括5个block，每个block有NN个word
+			 */
+			int[] set = new int[5 * NN];
+			System.arraycopy(code2, i * 5 * NN, set, 0, set.length);	
+			
+			int[][] msg = new int[5][KK - 1];//包含一个5个block的有效信息码（即不包括末尾的异或码）
+			for(int j = 0; j < 5; j++)
+			{
+				int[] block = new int[NN];
+				int[] rec = new int[KK];
+				System.arraycopy(set, j * NN, block, 0, NN);
+				rs2.putToDecode(block);
+				rs2.rsDecode();
+				rec = rs2.getCaledReceive();
+				System.arraycopy(rec, NN - KK, msg[j], 0, KK - 1);
+				int xor = 0;
+				for(int k = 0; k < KK - 1; k++)
+					xor ^= msg[j][k];
+				if(xor != rec[NN - 1])
+				{
+					errorNum ++;
+					errorPos = j;
+				}
+			}
+			/*
+			 * 利用5个block只错了一个block来就纠错那个block；
+			 */
+			if(errorNum == 1 && errorPos != 4)
+			{
+				int[] xor = new int[KK - 1];		
+					for(int k = 0; k < KK - 1; k++)
+						for(int j = 0; j < 4 && j != errorPos; j++)
+							xor[k] ^= msg[j][k];
+				System.arraycopy(xor, 0, msg[errorPos], 0, KK - 1);
+			}
+			for(int j = 0; j < 4; j++)
+				System.arraycopy(msg[j], 0, rawMsg, i * (KK - 1) * 4 + j * (KK - 1), KK - 1);			
+		}
+		
+		
         int[] msgInByte = combination(rawMsg);
         try {
         		byte[] msg = new byte[msgInByte.length];
