@@ -1,38 +1,49 @@
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
 public class rsCode
 {  
-	private static final int BITS_ALL = 6000;
+	private static int BITS_ALL = 0;
+	private static int BITS_VALID = 0;
     private static final int MM = 4;  
     private static final int NN = 15;  
-    private static final int KK = 3;  
-    private static final int TT = (NN - KK) / 2; 
+    private static final int BOTTOM = -32768;
+    private static int KK = 0;
+    private static int TT = 0; 
     private int[] pp = {1,1,0,0,1}  ;//  N255K127{1,0,1,1,1,0,0,0,1}    N15K11M4{1,1,0,0,1}
     //private int[] pp = {1,1,0,0,1};
     private int[] alphaTo = new int[NN+1];  
     private int[] indexOf = new int[NN+1];
-    private int[] gg = new int[NN-KK+1];
+    private int[] gg = null;
     public int[] recd = new int[NN];  
-    public int[] data = new int[KK];  //信息码位
-    public int[] bb = new int[NN-KK];  //保存最后的校验位
+    public int[] data = null;  //淇℃伅鐮佷綅
+    public int[] bb = null;  //淇濆瓨鏈�鍚庣殑鏍￠獙浣�
       
     /** 
-     * 构造函数RSCode() 
-     * 初始化工作，生成GF空间和对应的生成多项式 
+     * 鏋勯�犲嚱鏁癛SCode() 
+     * 鍒濆鍖栧伐浣滐紝鐢熸垚GF绌洪棿鍜屽搴旂殑鐢熸垚澶氶」寮� 
      */  
     public rsCode()
     {  
+    	init();
         generateGF();  
         generatePolynomial();  
     }  
-      
+     private void init()
+     {
+    	 TT = (NN - KK) / 2;
+    	 gg = new int[NN-KK+1];
+    	 data = new int[KK];  //淇℃伅鐮佷綅
+    	 bb = new int[NN-KK];  //淇濆瓨鏈�鍚庣殑鏍￠獙浣�
+     }
     /** 
-     * 函数generateGF() 
-     * 生成GF(2^MM)空间 
+     * 鍑芥暟generateGF() 
+     * 鐢熸垚GF(2^MM)绌洪棿 
      */  
     public void generateGF() 
     {  
@@ -63,16 +74,16 @@ public class rsCode
         }  
           
         indexOf[0] = -1;  
-        //输出GF空间  
-/*      System.out.println("GF空间:"); 
+        //杈撳嚭GF绌洪棿  
+/*      System.out.println("GF绌洪棿:"); 
         for(i=0; i<=NN; i++){ 
             System.out.println(i + "   " + alphaTo[i] + "   " + indexOf[i]); 
         }*/  
     }//GenerateGF  
       
     /** 
-     * 函数generatePolynomial() 
-     * 产生相应的生成多项式的各项系数 
+     * 鍑芥暟generatePolynomial() 
+     * 浜х敓鐩稿簲鐨勭敓鎴愬椤瑰紡鐨勫悇椤圭郴鏁� 
      */  
     public void generatePolynomial() 
     {  
@@ -92,14 +103,14 @@ public class rsCode
             gg[0] = alphaTo[(indexOf[gg[0]]+i) % NN];  
         }  
           
-        //转换其到  
+        //杞崲鍏跺埌  
         for(i=0; i<=NN-KK; i++) 
         {  
             gg[i] = indexOf[gg[i]];  
         }  
           
-        //输出生成多项式的各项系数  
-        System.out.println("生成多项式系数:");  
+        //杈撳嚭鐢熸垚澶氶」寮忕殑鍚勯」绯绘暟  
+        System.out.println("鐢熸垚澶氶」寮忕郴鏁�:");  
         for(i=0; i<=NN-KK; i++) 
         {  
             System.out.println(gg[i]);  
@@ -107,8 +118,8 @@ public class rsCode
     }  
   
     /** 
-     * 函数rsEncode() 
-     * RS编码 
+     * 鍑芥暟rsEncode() 
+     * RS缂栫爜 
      */  
     public void rsEncode()
  {  
@@ -119,7 +130,7 @@ public class rsCode
           
         for(i = KK-1; i >= 0; i --) 
         {  
-            //逐步的将下一步要减的，存入bb(i)  
+            //閫愭鐨勫皢涓嬩竴姝ヨ鍑忕殑锛屽瓨鍏b(i)  
             feedback = indexOf[data[i] ^ bb[NN-KK-1]];  
             if(feedback != -1) {  
                 for(j=NN-KK-1; j>0; j--) {  
@@ -136,11 +147,11 @@ public class rsCode
                 bb[0] = 0;  
             }  
         }  
-        //输出编码结果  
-        System.out.println("编码结果:");  
-        for(i=0; i<NN-KK; i++) {  
+        //杈撳嚭缂栫爜缁撴灉  
+        //System.out.println("缂栫爜缁撴灉:");
+       /* for(i=0; i<NN-KK; i++) {
             System.out.println(bb[i]);  
-        }  
+        }*/
     }  
       
     public void putData(byte[] data)
@@ -163,8 +174,8 @@ public class rsCode
     	recd = data;
     }
     /** 
-     * 函数rsDecode() 
-     * RS解码 
+     * 鍑芥暟rsDecode() 
+     * RS瑙ｇ爜 
      */  
     public void rsDecode()
     {  
@@ -183,7 +194,7 @@ public class rsCode
         int[] err = new int[NN];  
         int[] reg = new int[TT+1];  
           
-        //转换成GF空间  
+        //杞崲鎴怗F绌洪棿  
         for(i=0; i<NN; i++)
         {  
             if(recd[i] == -1)  
@@ -192,7 +203,7 @@ public class rsCode
                 recd[i] = indexOf[recd[i]];  
         }
           
-        //求伴随多项式  
+        //姹備即闅忓椤瑰紡  
         for(i=1; i<=NN-KK; i++)
         {  
             s[i] = 0;  
@@ -207,10 +218,10 @@ public class rsCode
         }  
         System.out.println("syn_error=" + syn_error);  
           
-        //如果有错，则进行纠正  
+        //濡傛灉鏈夐敊锛屽垯杩涜绾犳  
         if(syn_error == 1) 
         {  
-            //BM迭代求错误多项式的系数  
+            //BM杩唬姹傞敊璇椤瑰紡鐨勭郴鏁�  
             d[0] = 0;  
             d[1] = s[1];  
             elp[0][0] = 0;  
@@ -303,16 +314,16 @@ public class rsCode
                 }  
             }while((u<NN-KK) && (l[u+1]<=TT));  
             u++;  
-            System.out.println("错误数目:" + l[u]);  
+            System.out.println("閿欒鏁扮洰:" + l[u]);  
               
-            //求错误位置，以及改正错误  
+            //姹傞敊璇綅缃紝浠ュ強鏀规閿欒  
             if(l[u] <= TT)
             {  
                 for(i=0; i<= l[u]; i++)
                 {  
                     elp[u][i] = indexOf[elp[u][i]];  
                 }  
-                //求错误位置多项式的根  
+                //姹傞敊璇綅缃椤瑰紡鐨勬牴  
                 for(i=1; i<= l[u]; i++) 
                 {  
                     reg[i] = elp[u][i];  
@@ -334,7 +345,7 @@ public class rsCode
                     {  
                         root[count] = i;  
                         loc[count] = NN-i;  
-                        System.out.println("错误位置:" + loc[count]);  
+                        System.out.println("閿欒浣嶇疆:" + loc[count]);  
                         count++;                          
                     }  
                 }  
@@ -371,7 +382,7 @@ public class rsCode
                         z[i] = indexOf[z[i]];  
                     }  
                       
-                    //计算错误图样  
+                    //璁＄畻閿欒鍥炬牱  
                     for(i=0; i<NN; i++) 
                     {  
                         err[i] = 0;  
@@ -406,7 +417,7 @@ public class rsCode
                 }
                 else 
                 {  
-                    //错误太多，无法改正  
+                    //閿欒澶锛屾棤娉曟敼姝�  
                     for(i=0; i<NN; i++) 
                     {  
                         if(recd[i] != -1)  
@@ -418,7 +429,7 @@ public class rsCode
             }
             else
             {  
-                //错误太多，无法改正  
+                //閿欒澶锛屾棤娉曟敼姝�  
                 for(i=0; i<NN; i++)
                 {  
                     if(recd[i] != -1)  
@@ -440,36 +451,66 @@ public class rsCode
         }  
     }  
     /** 
-     * @param args 
+     * @param
      */  
     public int[] getCaledReceive()
     {
     	return recd.clone();
     }
+    public static void paraAnalyze(String[] args)
+    {
+    	for(int i = 0; i < args.length; i++)
+    	{
+    		if(args[i].equals("-k"))
+    			KK = Integer.parseInt(args[i + 1]);
+    	}
+    	if(BITS_ALL == 0 || KK == 0)
+    	{
+    		System.out.println("The usage:");
+    		System.out.println("doubleError -l bitlength -k Kval");
+    		
+    		System.out.println("[-k]  Kval is the value of KK");
+    	}
+    }
+    /**
+     * @param args
+     * how to usr this: "doubleError -l bitlength -k Kval"
+     * arg[0] is the value of KK
+     * we just need to input the value of k to start this algorithm
+     */
     public static void main(String[] args)
     {  
-        // TODO Auto-generated method stub  
+        // TODO Auto-generated method stub
+    	paraAnalyze(args);
+    	
 	    if(true)
 	    {
-	        rsCode rs = new rsCode();        
-	        //************输入要编码的数据 **************编码*****************
-	        //二重纠错，每16个码字一组，其中包括15码字用来做rs编码，还有一个码字用来判断信息码是否正确。
+	        rsCode rs = null;
+            //*******************************************
+	        /**
+	         * 1 set consists of 5 blocks, 4 of which are valid data and the final one is for double error correction.
+	         * 1 block consists of NN words, KK -1 of which are valid data.
+	         */
 	        FileInputStream fis = null;
+	        FileReader kReader = null;
 			byte[] data = null;
 			int[] dataNew = null;
-			int setNumInAll = BITS_ALL / (NN) / MM / 5;
-			try {
-					fis = new FileInputStream("./surface.txt");
-					int size = fis.available();
-					size = setNumInAll * (5 - 1) * KK * MM / 8;
+			int size = 0;
+			try {                
+					fis = new FileInputStream(new File("./msg.txt"));
+					//int size = setNumInAll * (5 - 1) * (KK - 1) * MM / 8;//有效信息字节数
+					size = fis.available();
+					//byte[] word = transLength2Bytes(size);
+					BITS_VALID = (size) * 8;
 					data = new byte[size];
 					fis.read(data);
-					fis.close(); 
-					dataNew = new int[2 * size];
-					for(int i = 0, j = 0; i < size; i++, j+=2)
+					fis.close();
+
+					dataNew = new int[2 * (size)];
+					for(int i = 0, j = 0; i < size ; i++, j+=2)
 					{
 						dataNew[j] = (int)(data[i] >> 4 & 0x0f);
-						dataNew[j + 1] = (int)(data[i]  & 0x0f);
+						dataNew[j + 1] = (int)(data[i]  & 0x0f);					
 					}
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
@@ -478,17 +519,26 @@ public class rsCode
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-
-			int blockNum = setNumInAll * 5;
-			//int[] code = new int[(NN) * blockNum];
+			//int setNumInAll = BITS_ALL / (NN) / MM / 5;
+			int setNumInAll = BITS_VALID / (KK - 1) / MM / (5 - 1); 
+			if(!isDividable(new int[]{BITS_VALID , (KK - 1) , MM , (5 - 1)}))
+				setNumInAll++;
+			BITS_ALL = setNumInAll * 5 * NN * MM;
 			int[] code = new int[BITS_ALL / MM];
 			int[] set = new int[5 * NN];
-			int[] oneSetMsg = new int[4 * (KK - 1)];
-			int[][] msg = new int[5][KK];
+			int[] oneSetMsg = null;
+			
 			int[] block = new int[NN];
+			rs = new rsCode();
 			for(int i = 0; i < setNumInAll; i++)
 			{
-				System.arraycopy(dataNew, i * 4 * (KK - 1), oneSetMsg, 0, 4 * (KK - 1));
+				int[][] msg = new int[5][KK];
+				oneSetMsg =  new int[4 * (KK - 1)];
+				if(i != setNumInAll - 1)
+					System.arraycopy(dataNew, i * 4 * (KK - 1), oneSetMsg, 0, 4 * (KK - 1));
+				else 
+					System.arraycopy(dataNew, i * 4 * (KK - 1), oneSetMsg, 0, dataNew.length - i * 4 * (KK - 1));
+				
 				for(int j = 0; j < 4; j++)
 				{
 					System.arraycopy(oneSetMsg, j * (KK - 1), msg[j], 0, KK - 1);
@@ -496,41 +546,45 @@ public class rsCode
 						msg[j][KK - 1] ^= msg[j][k];
 					rs.putData(msg[j]);
 					rs.rsEncode();
-					int[] encoded = rs.getCode();//校验码
+					int[] encoded = rs.getCode();//鏍￠獙鐮�
 					/*
-					 * 将校验码和信息码放入到block中
+					 * 灏嗘牎楠岀爜鍜屼俊鎭爜鏀惧叆鍒癰lock涓�
 					 */
 					System.arraycopy(encoded, 0, block, 0, NN - KK);
 					System.arraycopy(msg[j], 0, block, NN - KK, KK);
 					/*
-					 * 将block放入到set中
+					 * 灏哹lock鏀惧叆鍒皊et涓�
 					 */
 					System.arraycopy(block, 0, set, j * NN, NN);
 				}
 				for(int k = 0; k < KK - 1; k++)
 					for(int j = 0; j < 4; j++)
 						msg[4][k] ^= msg[j][k];
+				for(int k = 0; k < KK - 1; k++)
+					msg[4][KK - 1] ^= msg[4][k];
 				rs.putData(msg[4]);
 				rs.rsEncode();
 				int[] encoded = rs.getCode();
 				System.arraycopy(encoded, 0, block, 0, NN - KK);
 				System.arraycopy(msg[4], 0, block, NN - KK, KK);
 				System.arraycopy(block, 0, set, 4 * NN, NN);
-				
-				
+						
 				System.arraycopy(set, 0, code, i * 5 * NN, 5 * NN);
 			}
 			
 /*			int[] writeToFile = new int[6400/MM];
-//************************************************分配**************************************************V2.1
+//************************************************鍒嗛厤**************************************************V2.1
 			for(int i = 0; i < 6400/MM/(NN + 1); i++)
 			{
 				 System.arraycopy(code, i * NN, writeToFile, i * (NN + 1), NN);
 				 writeToFile[i * NN] = code[i * NN - 1];
 			}*/
-			 
+			File msgFile = null;
+			FileWriter fw = null;
 			try {
-					FileWriter fw = new FileWriter("./msg_surface_double_15_3_6k.txt");
+					msgFile = new File("./encMsg.txt");
+					msgFile.createNewFile();
+					fw = new FileWriter(msgFile);
 					for(int i = 0;i < code.length; i++)
 					{
 						byte[] b = byteArr2DoubleRadix(code[i]);
@@ -544,32 +598,32 @@ public class rsCode
 			e.printStackTrace();
 		}
 	   }	
-//************解码**************************************
-/*二重纠错：
- * 每16个码字为一个block，每5个block为一个set；
- * 每个block中包含有15码字的码组信息+1码字检验码，该校验码为码组中信息码的异或，接受到后可用信息码异或和该码字对比，相等则解码正确，否者失败；
- * 5个block中最后一个block用来二重纠错，用前面所有的信息码异或的来，5个block中有4个正确，一个错误，则可以用异或求出错误的那个block。
+//************瑙ｇ爜**************************************
+/*浜岄噸绾犻敊锛�
+ * 姣�16涓爜瀛椾负涓�涓猙lock锛屾瘡5涓猙lock涓轰竴涓猻et锛�
+ * 姣忎釜block涓寘鍚湁15鐮佸瓧鐨勭爜缁勪俊鎭�+1鐮佸瓧妫�楠岀爜锛岃鏍￠獙鐮佷负鐮佺粍涓俊鎭爜鐨勫紓鎴栵紝鎺ュ彈鍒板悗鍙敤淇℃伅鐮佸紓鎴栧拰璇ョ爜瀛楀姣旓紝鐩哥瓑鍒欒В鐮佹纭紝鍚﹁�呭け璐ワ紱
+ * 5涓猙lock涓渶鍚庝竴涓猙lock鐢ㄦ潵浜岄噸绾犻敊锛岀敤鍓嶉潰鎵�鏈夌殑淇℃伅鐮佸紓鎴栫殑鏉ワ紝5涓猙lock涓湁4涓纭紝涓�涓敊璇紝鍒欏彲浠ョ敤寮傛垨姹傚嚭閿欒鐨勯偅涓猙lock銆�
  * */
-	if(true)
+	if(false)
 	{
 		rsCode rs2 = new rsCode();
-		int[] code2 = Io.readBitAndStranToByte("./msg_surface_double_15_3_6k.txt");
-		int setNumInAll = BITS_ALL / (NN) / MM / 5;
-		//计算共有多少block
+		int[] code2 = Io.readBitAndStranToByte("./encMsg.txt");
+		
+		int setNumInAll = BITS_VALID / (KK - 1) / MM / (5 - 1);
+		if(!isDividable(new int[]{BITS_VALID , (KK - 1) , MM , (5 - 1)}))
+			setNumInAll++;
+		//
 		int ValidBlockNum = setNumInAll * 4;
-		int blockNum = setNumInAll * 5;
 		int errorNum = 0, errorPos = 0;
-		//解码的出的信息码放rawMsg中
+		//
 		int[] rawMsg = new int[ValidBlockNum * (KK - 1)];
 		for(int i = 0; i < setNumInAll; i++)
 		{
-			/*
-			 * 一次读一个set，一个set包括5个block，每个block有NN个word
-			 */
+
 			int[] set = new int[5 * NN];
 			System.arraycopy(code2, i * 5 * NN, set, 0, set.length);	
 			
-			int[][] msg = new int[5][KK - 1];//包含一个5个block的有效信息码（即不包括末尾的异或码）
+			int[][] msg = new int[5][KK - 1];//鍖呭惈涓�涓�5涓猙lock鐨勬湁鏁堜俊鎭爜锛堝嵆涓嶅寘鎷湯灏剧殑寮傛垨鐮侊級
 			for(int j = 0; j < 5; j++)
 			{
 				int[] block = new int[NN];
@@ -577,7 +631,7 @@ public class rsCode
 				System.arraycopy(set, j * NN, block, 0, NN);
 				rs2.putToDecode(block);
 				rs2.rsDecode();
-				rec = rs2.getCaledReceive();
+				rec = rs2.getCaledReceive();//杩斿洖绾犻敊鐮�+淇℃伅鐮�
 				System.arraycopy(rec, NN - KK, msg[j], 0, KK - 1);
 				int xor = 0;
 				for(int k = 0; k < KK - 1; k++)
@@ -589,7 +643,7 @@ public class rsCode
 				}
 			}
 			/*
-			 * 利用5个block只错了一个block来就纠错那个block；
+			 * 鍒╃敤5涓猙lock鍙敊浜嗕竴涓猙lock鏉ュ氨绾犻敊閭ｄ釜block锛�
 			 */
 			if(errorNum == 1 && errorPos != 4)
 			{
@@ -599,6 +653,8 @@ public class rsCode
 							xor[k] ^= msg[j][k];
 				System.arraycopy(xor, 0, msg[errorPos], 0, KK - 1);
 			}
+			errorNum = 0;
+			errorPos = 0;
 			for(int j = 0; j < 4; j++)
 				System.arraycopy(msg[j], 0, rawMsg, i * (KK - 1) * 4 + j * (KK - 1), KK - 1);			
 		}
@@ -609,9 +665,9 @@ public class rsCode
         		byte[] msg = new byte[msgInByte.length];
         		for(int i = 0; i < msg.length; i++)
         			msg[i] = (byte)msgInByte[i];
-				FileOutputStream fos = new FileOutputStream("./result_43.txt");
+				FileOutputStream fos = new FileOutputStream("./result.txt");
 				fos.write(msg);
-				String msginstr = msg.toString();
+				String msginstr = msg.toString().trim();
 				System.out.println(msginstr);
 				fos.flush();
 				fos.close();
@@ -630,14 +686,14 @@ public class rsCode
         for(i=0; i<KK; i++)  
             rs.recd[i+NN-KK] = rs.data[i];  
           
-        //主动弄点错误  
+        //涓诲姩寮勭偣閿欒  
         for(i=0; i<2; i++)  
             rs.recd[i] = 11;  
           
-        //解码，纠错  
+        //瑙ｇ爜锛岀籂閿�  
         rs.rsDecode();  
           
-        //输出正确编码和纠错后的编码  
+        //杈撳嚭姝ｇ‘缂栫爜鍜岀籂閿欏悗鐨勭紪鐮�  
         System.out.println("i  data  recd");  
         for(i=0; i<NN-KK; i++) {  
             System.out.println(i + "   " + rs.bb[i] + "   " + rs.recd[i]);  
@@ -646,6 +702,32 @@ public class rsCode
             System.out.println(i + "   " + rs.data[i-NN+KK] + "   " + rs.recd[i]);  
         } */ 
     }  
+    public static boolean isDividable(int[] n)
+    {
+    	int l = n.length;
+    	for(int i = 1; i < l; i++)
+    		if(n[0] % n[i] != 0)
+    			return false;
+    		else
+    			n[0] /= n[i];
+    	return true;
+    }
+    public static byte[] transLength2Bytes(int len)
+    {
+ 		int newL = len - 32768;
+ 	   	byte[] l = new byte[2];
+ 	   	l[0] = (byte) (newL & 0xff);//low
+ 	   	l[1] = (byte)((newL >> 8) & 0xff);//high
+ 	   	return l;
+    }
+    public static int transLength2Int(byte[] l)
+    {
+ 	   	int len = 0;
+ 	   	len = ((int)l[1]& 0xff)  << 8;
+ 	   	len ^= (int)l[0] & 0xff;
+ 	   	int newL = len + 32768;
+ 	   	return newL;
+    }
     private static byte[] combination(byte[] msg1, byte[] msg2)
 	{
 		byte[] msg = new byte[(msg1.length + msg2.length)/2];
